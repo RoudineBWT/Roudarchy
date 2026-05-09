@@ -23,7 +23,7 @@ _binname="brave-origin-beta"
 _flagsfile="brave-origin-beta-flags.conf"
 _filename="brave-origin-beta_${pkgver}_amd64.deb"
 source=("${_filename}::https://github.com/brave/brave-browser/releases/download/v${pkgver}/${_filename}")
-sha256sums=('312b6d44a452987c949b6ebc886076e67a90e2e633c187221a34420be476ed44')
+sha256sums=('PLACEHOLDER')
 
 _icon_suffixes=("_beta" "_origin_beta" "" "_release")
 
@@ -52,31 +52,19 @@ _install_icons() {
 package() {
   cd "$srcdir"
 
-  # Détection automatique du chemin réel dans le .deb
-  local _real_appdir
-  if [ -d "opt/brave.com/${_appname}" ]; then
-    _real_appdir="opt/brave.com/${_appname}"
-  else
-    # Cherche n'importe quel dossier sous opt/brave.com/
-    _real_appdir=$(find opt/brave.com/ -maxdepth 1 -mindepth 1 -type d | head -1)
-    echo "INFO: chemin détecté automatiquement: $_real_appdir"
-  fi
-
-  if [ -z "$_real_appdir" ] || [ ! -d "$_real_appdir" ]; then
-    echo "ERROR: impossible de trouver le dossier de l'application dans opt/brave.com/"
-    echo "Contenu de opt/brave.com/:"
-    ls -la opt/brave.com/ 2>/dev/null || echo "(vide ou absent)"
-    return 1
-  fi
-
   install -d "$pkgdir/opt/brave.com/${_appname}"
-  cp -a "${_real_appdir}/." "$pkgdir/opt/brave.com/${_appname}/"
-  chmod 4755 "$pkgdir/opt/brave.com/${_appname}/chrome-sandbox"
+  cp -a "opt/brave.com/${_appname}/." "$pkgdir/opt/brave.com/${_appname}/"
 
-  install -Dm755 /dev/stdin "$pkgdir/usr/bin/${_binname}" <<WRAPEOF
+  # chrome-sandbox : peut être absent dans certains builds origin
+  if [ -f "$pkgdir/opt/brave.com/${_appname}/chrome-sandbox" ]; then
+    chmod 4755 "$pkgdir/opt/brave.com/${_appname}/chrome-sandbox"
+  fi
+
+  # Le binaire dans le .deb origin s'appelle "brave-origin", pas "brave"
+  install -Dm755 /dev/stdin "$pkgdir/usr/bin/${_binname}" <<EOF
 #!/usr/bin/env bash
 XDG_CONFIG_HOME="\${XDG_CONFIG_HOME:-"\${HOME}/.config"}"
-FLAGS_FILE="\${XDG_CONFIG_HOME}/${_flagsfile}"
+FLAGS_FILE="\${XDG_CONFIG_HOME}/brave-origin-beta-flags.conf"
 FLAG_LIST=()
 
 if [[ -f "\$FLAGS_FILE" ]]; then
@@ -95,8 +83,8 @@ exec < /dev/null
 exec > >(exec cat)
 exec 2> >(exec cat >&2)
 
-exec /opt/brave.com/${_appname}/brave "\${FLAG_LIST[@]}" "\$@"
-WRAPEOF
+exec /opt/brave.com/brave-origin-beta/brave-origin "\${FLAG_LIST[@]}" "\$@"
+EOF
 
   if [ -f "usr/share/applications/brave-origin-beta.desktop" ]; then
     install -Dm644 "usr/share/applications/brave-origin-beta.desktop" \
@@ -119,8 +107,8 @@ MimeType=text/html;text/xml;application/xhtml+xml;x-scheme-handler/http;x-scheme
 DESKTOPEOF
   fi
 
-  _install_icons "${_real_appdir}" "brave-origin-beta"
+  _install_icons "opt/brave.com/${_appname}" "brave-origin-beta"
 
-  install -Dm644 "${_real_appdir}/LICENSE" \
+  install -Dm644 "opt/brave.com/${_appname}/LICENSE" \
     "$pkgdir/usr/share/licenses/$pkgname/LICENSE" 2>/dev/null || true
 }
