@@ -1,0 +1,247 @@
+name: Update & Publish Brave (all channels)
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  # ════════════════════════════════════════════════════════════
+  # JOB 1 — Mise à jour des PKGBUILDs
+  # ════════════════════════════════════════════════════════════
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      has_changes: ${{ steps.changes.outputs.has_changes }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get install -y jq curl
+
+      - name: Run update.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash update.sh
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            SUMMARY=""
+            for f in $(git diff --name-only | grep PKGBUILD); do
+              PKG=$(grep '^pkgname=' "$f" | cut -d= -f2)
+              VER=$(grep '^pkgver=' "$f" | cut -d= -f2)
+              SUMMARY="${SUMMARY}${PKG}=${VER} "
+            done
+            echo "summary=$SUMMARY" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit updated PKGBUILDs
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pkgs/*/PKGBUILD
+          git commit -m "brave: update — ${{ steps.changes.outputs.summary }}"
+          git push
+
+  # ════════════════════════════════════════════════════════════
+  # JOB 2 — Build .pkg.tar.zst + publication GitHub Pages
+  # ════════════════════════════════════════════════════════════
+  build-and-publish:
+    runs-on: ubuntu-latest
+    needs: update
+    if: needs.update.outputs.has_changes == 'true' || github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      # ── GPG (optionnel) ──────────────────────────────────
+      - name: Import GPG key
+        if: ${{ secrets.GPG_PRIVATE_KEY != '' }}
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+          echo "GPG_KEY_ID=$(gpg --list-secret-keys --keyid-format=long \
+            | grep '^sec' | head -1 | awk '{print $2}' | cut -d/ -f2)" >> $GITHUB_ENV
+
+      # ── Build des 5 canaux dans un container Arch ────────
+      - name: Build packages
+        run: |
+          mkdir -p repo-output
+
+          docker run --rm \
+            -v "$PWD:/src" \
+            -v "$PWD/repo-output:/output" \
+            archlinux:latest bash -c '
+              set -e
+
+              pacman -Syu --noconfirm
+              pacman -S --noconfirm \
+                base-devel libarchive wget curl \
+                gtk3 nss alsa-lib libxss libnotify dbus xdg-utils libcups
+
+              useradd -m builder
+              echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+              # Liste tous les canaux disponibles dans /src/pkgs/
+              for PKG_DIR in /src/pkgs/*/; do
+                CHANNEL=$(basename "$PKG_DIR")
+                [ -f "$PKG_DIR/PKGBUILD" ] || continue
+
+                echo "════ Building $CHANNEL ════"
+                BUILD_DIR="/tmp/build-${CHANNEL}"
+                cp -r "$PKG_DIR" "$BUILD_DIR"
+                chown -R builder "$BUILD_DIR"
+
+                # Si le build échoue, on log l'erreur mais on continue les autres
+                if su builder -c "cd $BUILD_DIR && makepkg -s --noconfirm --noprogressbar"; then
+                  cp "$BUILD_DIR"/*.pkg.tar.zst /output/
+                  echo "✅ Done: $CHANNEL"
+                else
+                  echo "❌ Failed: $CHANNEL (skipped)"
+                fi
+              done
+            '
+
+      # ── Signature GPG ────────────────────────────────────
+      - name: Sign packages
+        if: ${{ secrets.GPG_PRIVATE_KEY != '' }}
+        run: |
+          for pkg in repo-output/*.pkg.tar.zst; do
+            gpg --batch --yes \
+              --local-user "$GPG_KEY_ID" \
+              --detach-sign "$pkg"
+          done
+
+      # ── Base de données pacman ────────────────────────────
+      - name: Generate pacman database
+        run: |
+          docker run --rm \
+            -v "$PWD/repo-output:/repo" \
+            archlinux:latest bash -c '
+              set -e
+              pacman -Sy --noconfirm
+
+              cd /repo
+
+              # Vérifie qu il y a bien des paquets à indexer
+              shopt -s nullglob
+              pkgs=(*.pkg.tar.zst)
+              if [ ${#pkgs[@]} -eq 0 ]; then
+                echo "❌ Aucun paquet trouvé dans /repo, abandon."
+                exit 1
+              fi
+
+              repo-add --new --remove brave-repo.db.tar.gz "${pkgs[@]}"
+
+              # Symlinks standards attendus par pacman
+              ln -sf brave-repo.db.tar.gz    brave-repo.db
+              ln -sf brave-repo.files.tar.gz brave-repo.files
+              echo "✅ DB générée avec ${#pkgs[@]} paquet(s)."
+            '
+
+      # ── index.html ───────────────────────────────────────
+      - name: Generate index.html
+        env:
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME:  ${{ github.event.repository.name }}
+        run: |
+          cd repo-output
+
+          TABLE_ROWS=""
+          for f in *.pkg.tar.zst; do
+            SIZE=$(du -sh "$f" | cut -f1)
+            TABLE_ROWS="${TABLE_ROWS}<tr><td><a href=\"${f}\">${f}</a></td><td>${SIZE}</td></tr>\n"
+          done
+
+          cat > index.html <<EOHTML
+          <!DOCTYPE html>
+          <html lang="fr">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>Brave Arch Repo</title>
+            <style>
+              body { font-family: monospace; max-width: 860px; margin: 2rem auto; padding: 0 1rem; }
+              h1   { color: #FB542B; }
+              h2   { border-bottom: 2px solid #FB542B; padding-bottom: .3rem; }
+              pre  { background: #f4f4f4; padding: 1rem; border-radius: 6px; overflow-x: auto; }
+              a    { color: #FB542B; }
+              table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+              th, td { text-align: left; padding: .4rem .8rem; border-bottom: 1px solid #ddd; }
+              th { background: #f4f4f4; }
+              .badge { display:inline-block; padding:.15rem .5rem; border-radius:4px; font-size:.8rem; margin-left:.5rem; }
+              .stable  { background:#d4edda; color:#155724; }
+              .beta    { background:#fff3cd; color:#856404; }
+              .nightly { background:#f8d7da; color:#721c24; }
+              .origin  { background:#cce5ff; color:#004085; }
+            </style>
+          </head>
+          <body>
+            <h1>🦁 Brave Arch Linux Repository</h1>
+            <p>Repo pacman non-officiel pour Brave Browser — tous les canaux.</p>
+
+            <h2>📦 Canaux disponibles</h2>
+            <table>
+              <tr><th>Paquet</th><th>Canal</th><th>Description</th></tr>
+              <tr><td><code>brave-bin</code></td><td><span class="badge stable">stable</span></td><td>Brave standard</td></tr>
+              <tr><td><code>brave-beta-bin</code></td><td><span class="badge beta">beta</span></td><td>Brave standard beta</td></tr>
+              <tr><td><code>brave-nightly-bin</code></td><td><span class="badge nightly">nightly</span></td><td>Brave standard nightly</td></tr>
+              <tr><td><code>brave-origin-beta-bin</code></td><td><span class="badge origin">origin beta</span></td><td>Brave Origin — sans Rewards/Wallet/Leo</td></tr>
+              <tr><td><code>brave-origin-nightly-bin</code></td><td><span class="badge origin">origin nightly</span></td><td>Brave Origin nightly</td></tr>
+            </table>
+
+            <h2>⚙️ Installation</h2>
+            <p>Ajoute dans <code>/etc/pacman.conf</code> :</p>
+            <pre>[brave-repo]
+          SigLevel = Optional TrustAll
+          Server = https://${REPO_OWNER}.github.io/${REPO_NAME}</pre>
+
+            <p>Puis :</p>
+            <pre>sudo pacman -Sy
+          sudo pacman -S brave-bin               # Stable
+          sudo pacman -S brave-beta-bin          # Beta
+          sudo pacman -S brave-nightly-bin       # Nightly
+          sudo pacman -S brave-origin-beta-bin   # Origin Beta
+          sudo pacman -S brave-origin-nightly-bin # Origin Nightly</pre>
+
+            <h2>📁 Fichiers disponibles</h2>
+            <table>
+              <tr><th>Fichier</th><th>Taille</th></tr>
+              $(echo -e "$TABLE_ROWS")
+            </table>
+
+            <p><small>Mis à jour automatiquement via GitHub Actions · <a href="https://github.com/${REPO_OWNER}/${REPO_NAME}">Source</a></small></p>
+          </body>
+          </html>
+          EOHTML
+
+      # ── Publication GitHub Pages ──────────────────────────
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: repo-output
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
