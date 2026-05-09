@@ -1,0 +1,89 @@
+pkgname=brave-beta-bin
+pkgver=1.91.144
+pkgrel=1
+pkgdesc="Brave Web Browser — Beta channel"
+arch=('x86_64')
+url="https://brave.com"
+license=('custom')
+depends=(
+  'gtk3' 'nss' 'alsa-lib' 'libxss' 'ttf-font'
+  'libnotify' 'dbus' 'xdg-utils' 'libcups'
+)
+optdepends=(
+  'plasma-browser-integration: KDE Plasma integration'
+  'kdialog: KDE file picker'
+  'libgnome-keyring: GNOME keyring support'
+)
+provides=('brave-beta' 'brave-browser-beta')
+conflicts=('brave-beta' 'brave-browser-beta')
+options=('!strip')
+
+_appname="brave-beta"
+_binname="brave-browser-beta"
+_flagsfile="brave-beta-flags.conf"
+_filename="brave-browser-beta_${pkgver}_amd64.deb"
+source=("${_filename}::https://github.com/brave/brave-browser/releases/download/v${pkgver}/${_filename}")
+sha256sums=('PLACEHOLDER')
+
+_icon_suffixes=("_beta" "" "_release")
+
+prepare() {
+  cd "$srcdir"
+  bsdtar -xf "${_filename}"
+  bsdtar -xf data.tar.xz
+}
+
+_install_icons() {
+  local app_dir="$1" icon_name="$2"
+  for size in 16 24 32 48 64 128 256; do
+    for suffix in "${_icon_suffixes[@]}"; do
+      local src="${app_dir}/product_logo_${size}${suffix}.png"
+      if [ -f "$src" ]; then
+        install -Dm644 "$src" \
+          "$pkgdir/usr/share/icons/hicolor/${size}x${size}/apps/${icon_name}.png"
+        break
+      fi
+    done
+  done
+}
+
+package() {
+  cd "$srcdir"
+
+  install -d "$pkgdir/opt/brave.com/${_appname}"
+  cp -a "opt/brave.com/${_appname}/." "$pkgdir/opt/brave.com/${_appname}/"
+  chmod 4755 "$pkgdir/opt/brave.com/${_appname}/chrome-sandbox"
+
+  install -Dm755 /dev/stdin "$pkgdir/usr/bin/${_binname}" <<EOF
+#!/usr/bin/env bash
+XDG_CONFIG_HOME="\${XDG_CONFIG_HOME:-"\${HOME}/.config"}"
+FLAGS_FILE="\${XDG_CONFIG_HOME}/${_flagsfile}"
+FLAG_LIST=()
+
+if [[ -f "\$FLAGS_FILE" ]]; then
+  mapfile -t _lines < "\$FLAGS_FILE"
+  for line in "\${_lines[@]}"; do
+    line="\$(sed -e 's/[[:space:]]*#.*//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*\$//' <<< "\$line")"
+    [[ -n "\$line" ]] && FLAG_LIST+=("\$line")
+  done
+fi
+
+export CHROME_VERSION_EXTRA='beta'
+export CHROME_WRAPPER="\$(readlink -f "\$0")"
+export GNOME_DISABLE_CRASH_DIALOG=SET_BY_GOOGLE_CHROME
+
+exec < /dev/null
+exec > >(exec cat)
+exec 2> >(exec cat >&2)
+
+exec /opt/brave.com/${_appname}/brave "\${FLAG_LIST[@]}" "\$@"
+EOF
+
+  install -Dm644 "usr/share/applications/brave-browser-beta.desktop" \
+    "$pkgdir/usr/share/applications/brave-browser-beta.desktop"
+
+  _install_icons "opt/brave.com/${_appname}" "brave-browser-beta"
+
+  install -Dm644 "opt/brave.com/${_appname}/LICENSE" \
+    "$pkgdir/usr/share/licenses/$pkgname/LICENSE" 2>/dev/null || true
+}
