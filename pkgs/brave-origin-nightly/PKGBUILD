@@ -1,110 +1,38 @@
 pkgname=brave-origin-nightly-bin
-pkgver=1.92.41
+pkgver=1.92.39
 pkgrel=1
-pkgdesc="Brave Origin Web Browser — Nightly channel (sans Rewards/Wallet/Leo)"
-arch=('x86_64')
-url="https://brave.com"
-license=('custom')
-depends=(
-  'gtk3' 'nss' 'alsa-lib' 'libxss' 'ttf-font'
-  'libnotify' 'dbus' 'xdg-utils' 'libcups'
-)
-optdepends=(
-  'plasma-browser-integration: KDE Plasma integration'
-  'kdialog: KDE file picker'
-  'libgnome-keyring: GNOME keyring support'
-)
-provides=('brave-origin-nightly')
-conflicts=('brave-origin-nightly')
-options=('!strip')
+pkgdesc='The minimalist browser from the makers of Brave (nightly binary release).'
+arch=(x86_64 aarch64)
+url='https://brave.com/origin/download-nightly'
+license=('MPL2')
+depends=('gtk3' 'nss' 'alsa-lib' 'libxss' 'ttf-font')
+optdepends=('cups: Printer support'
+            'mesa: Hardware accelerated rendering'
+            'libglvnd: Support multiple different OpenGL drivers at any given time'
+            'libgnome-keyring: gnome keyring support')
+provides=("${pkgname}" "${pkgname%-bin}")
+conflicts=()
+source=("$pkgname.sh")
+options=(!strip)
+source_x86_64=("https://github.com/brave/brave-browser/releases/download/v${pkgver}/${pkgname%-bin}_${pkgver}_amd64.deb")
+source_aarch64=("https://github.com/brave/brave-browser/releases/download/v${pkgver}/${pkgname%-bin}_${pkgver}_arm64.deb")
+sha512sums=('a9366d90e0e23cb098cae6a86fdd2ef102677df96a6caff27af8f48e7ddb3175829c8dbf32ef55cf6a13383aad9d3d9302826062d7e5743a8ac83960ec175e69')
 
-_appname="brave-origin-nightly"
-_binname="brave-origin-nightly"
-_flagsfile="brave-origin-nightly-flags.conf"
-_filename="brave-origin-nightly_${pkgver}_amd64.deb"
-source=("${_filename}::https://github.com/brave/brave-browser/releases/download/v${pkgver}/${_filename}")
-sha256sums=('6e8a21dec8440230bc66645035845b087347ac323ca022270faf832aabae5cff')
-
-# Depuis v1.92.24 : suffixe _nightly obligatoire (cf AUR)
-_icon_suffixes=("_nightly" "_origin_nightly" "" "_release")
+sha512sums_x86_64=('9306f40c0197ebc5cc3c8ebdb8108e60bb298b2f6c5376a98b2d89b7ee3cfbc65733b543dd5d69c7cc59fd9a8ed120b067ca8a49a500c0d17b24c5097732393f')
+sha512sums_aarch64=('ed98974fcd0f49ae6dab304cc3d95ed0897833fb08877a6110e81302d7cf7b6ef4f0c0eff65e3a96a35104d2f77cad72064cd58f6f7efe243de8585bfa47a7a3')
 
 prepare() {
-  cd "$srcdir"
-  bsdtar -xf "${_filename}"
-  bsdtar -xf data.tar.xz
-}
-
-_install_icons() {
-  local app_dir="$1" icon_name="$2" found=0
-  for size in 16 24 32 48 64 128 256; do
-    for suffix in "${_icon_suffixes[@]}"; do
-      local src="${app_dir}/product_logo_${size}${suffix}.png"
-      if [ -f "$src" ]; then
-        install -Dm644 "$src" \
-          "$pkgdir/usr/share/icons/hicolor/${size}x${size}/apps/${icon_name}.png"
-        found=1
-        break
-      fi
-    done
-  done
-  [[ "$found" -eq 0 ]] && echo "WARNING: aucune icône trouvée pour $icon_name"
+  mkdir -p brave
+  tar -xf data.tar.xz -C brave
+  rm -rf "brave/opt/brave.com/${pkgname%-bin}/cron"
 }
 
 package() {
-  cd "$srcdir"
-
-  install -d "$pkgdir/opt/brave.com/${_appname}"
-  cp -a "opt/brave.com/${_appname}/." "$pkgdir/opt/brave.com/${_appname}/"
-  chmod 4755 "$pkgdir/opt/brave.com/${_appname}/chrome-sandbox"
-
-  install -Dm755 /dev/stdin "$pkgdir/usr/bin/${_binname}" <<EOF
-#!/usr/bin/env bash
-XDG_CONFIG_HOME="\${XDG_CONFIG_HOME:-"\${HOME}/.config"}"
-FLAGS_FILE="\${XDG_CONFIG_HOME}/${_flagsfile}"
-FLAG_LIST=()
-
-if [[ -f "\$FLAGS_FILE" ]]; then
-  mapfile -t _lines < "\$FLAGS_FILE"
-  for line in "\${_lines[@]}"; do
-    line="\$(sed -e 's/[[:space:]]*#.*//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*\$//' <<< "\$line")"
-    [[ -n "\$line" ]] && FLAG_LIST+=("\$line")
-  done
-fi
-
-export CHROME_VERSION_EXTRA='nightly'
-export CHROME_WRAPPER="\$(readlink -f "\$0")"
-export GNOME_DISABLE_CRASH_DIALOG=SET_BY_GOOGLE_CHROME
-
-exec < /dev/null
-exec > >(exec cat)
-exec 2> >(exec cat >&2)
-
-exec /opt/brave.com/${_appname}/brave "\${FLAG_LIST[@]}" "\$@"
-EOF
-
-  if [ -f "usr/share/applications/brave-origin-nightly.desktop" ]; then
-    install -Dm644 "usr/share/applications/brave-origin-nightly.desktop" \
-      "$pkgdir/usr/share/applications/brave-origin-nightly.desktop"
-  else
-    install -Dm644 /dev/stdin \
-      "$pkgdir/usr/share/applications/brave-origin-nightly.desktop" <<'EOF'
-[Desktop Entry]
-Version=1.0
-Name=Brave Origin Nightly
-GenericName=Web Browser
-Comment=Brave Origin — minimalist browser (Nightly)
-Exec=/usr/bin/brave-origin-nightly %U
-StartupNotify=true
-Terminal=false
-Icon=brave-origin-nightly
-Type=Application
-Categories=Network;WebBrowser;
-MimeType=text/html;text/xml;application/xhtml+xml;x-scheme-handler/http;x-scheme-handler/https;
-EOF
-  fi
-
-  _install_icons "opt/brave.com/${_appname}" "brave-origin-nightly"
-
-  install -Dm644 "opt/brave.com/${_appname}/LICENSE" \
-    "$pkgdir/usr/share/licenses/$pkgname/LICENSE" 2>/dev/null || true
+    cp -a --reflink=auto brave/opt "$pkgdir/opt"
+    cp -a --reflink=auto brave/usr "$pkgdir/usr"
+    rm -f "$pkgdir/usr/bin/${pkgname%-bin}"
+    install -Dm0755 "$pkgname.sh" "$pkgdir/usr/bin/${pkgname%-bin}"
+    install -Dm0644 "brave/opt/brave.com/${pkgname%-bin}/product_logo_128_nightly.png" "$pkgdir/usr/share/pixmaps/${pkgname%-bin}.png"
+    install -Dm0664 -t "$pkgdir/usr/share/licenses/$pkgname" "brave/opt/brave.com/${pkgname%-bin}/LICENSE"
+    chmod 4755 "$pkgdir/opt/brave.com/${pkgname%-bin}/chrome-sandbox"
 }

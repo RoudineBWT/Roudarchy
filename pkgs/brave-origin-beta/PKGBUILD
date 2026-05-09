@@ -1,109 +1,37 @@
 pkgname=brave-origin-beta-bin
-pkgver=1.91.145
+pkgver=1.91.87
 pkgrel=1
-pkgdesc="Brave Origin Web Browser — Beta channel (sans Rewards/Wallet/Leo)"
-arch=('x86_64')
-url="https://brave.com"
-license=('custom')
-depends=(
-  'gtk3' 'nss' 'alsa-lib' 'libxss' 'ttf-font'
-  'libnotify' 'dbus' 'xdg-utils' 'libcups'
-)
-optdepends=(
-  'plasma-browser-integration: KDE Plasma integration'
-  'kdialog: KDE file picker'
-  'libgnome-keyring: GNOME keyring support'
-)
-provides=('brave-origin-beta')
-conflicts=('brave-origin-beta')
-options=('!strip')
-
-_appname="brave-origin-beta"
-_binname="brave-origin-beta"
-_flagsfile="brave-origin-beta-flags.conf"
-_filename="brave-origin-beta_${pkgver}_amd64.deb"
-source=("${_filename}::https://github.com/brave/brave-browser/releases/download/v${pkgver}/${_filename}")
-sha256sums=('312b6d44a452987c949b6ebc886076e67a90e2e633c187221a34420be476ed44')
-
-_icon_suffixes=("_beta" "_origin_beta" "" "_release")
+pkgdesc='The minimalist browser from the makers of Brave (beta binary release).'
+arch=(x86_64 aarch64)
+url='https://brave.com/origin/download-beta'
+license=('MPL2')
+depends=('gtk3' 'nss' 'alsa-lib' 'libxss' 'ttf-font')
+optdepends=('cups: Printer support'
+            'mesa: Hardware accelerated rendering'
+            'libglvnd: Support multiple different OpenGL drivers at any given time'
+            'libgnome-keyring: gnome keyring support')
+provides=("${pkgname}" "${pkgname%-bin}")
+conflicts=()
+source=("$pkgname.sh")
+options=(!strip)
+source_x86_64=("https://github.com/brave/brave-browser/releases/download/v${pkgver}/${pkgname%-bin}_${pkgver}_amd64.deb")
+source_aarch64=("https://github.com/brave/brave-browser/releases/download/v${pkgver}/${pkgname%-bin}-beta_${pkgver}_arm64.deb")
+sha512sums=('d29202fe9c1433cc70f2f8032c1d3c8d61d4eac88324c4ddd475f59ce9198e1ff6b6ec2c6005e932960dda83439aae5092251c7dd90321c91b9775b31c4f5d51')
+sha512sums_x86_64=('b72ff7602faf101d0b5040966ec202c78324b4c4518d56545a63a0e42875adbf4f8f178be75705dfc004f07df34ac9417c8c8f8be174d83311280e79c8566be2')
+sha512sums_aarch64=('0e86f7f04b2f1cee8ecfa8570d66b63704c18dee05a5ddfa7ec1a4beb625b6dfa28c687bc92d4630674baf1f8ca7c41ea529c97822158ad275be23a1acaaabd3')
 
 prepare() {
-  cd "$srcdir"
-  bsdtar -xf "${_filename}"
-  bsdtar -xf data.tar.xz
-}
-
-_install_icons() {
-  local app_dir="$1" icon_name="$2" found=0
-  for size in 16 24 32 48 64 128 256; do
-    for suffix in "${_icon_suffixes[@]}"; do
-      local src="${app_dir}/product_logo_${size}${suffix}.png"
-      if [ -f "$src" ]; then
-        install -Dm644 "$src" \
-          "$pkgdir/usr/share/icons/hicolor/${size}x${size}/apps/${icon_name}.png"
-        found=1
-        break
-      fi
-    done
-  done
-  [[ "$found" -eq 0 ]] && echo "WARNING: aucune icône trouvée pour $icon_name"
+  mkdir -p brave
+  tar -xf data.tar.xz -C brave
+  rm -rf "brave/opt/brave.com/${pkgname%-bin}/cron"
 }
 
 package() {
-  cd "$srcdir"
-
-  install -d "$pkgdir/opt/brave.com/${_appname}"
-  cp -a "opt/brave.com/${_appname}/." "$pkgdir/opt/brave.com/${_appname}/"
-  chmod 4755 "$pkgdir/opt/brave.com/${_appname}/chrome-sandbox"
-
-  install -Dm755 /dev/stdin "$pkgdir/usr/bin/${_binname}" <<EOF
-#!/usr/bin/env bash
-XDG_CONFIG_HOME="\${XDG_CONFIG_HOME:-"\${HOME}/.config"}"
-FLAGS_FILE="\${XDG_CONFIG_HOME}/${_flagsfile}"
-FLAG_LIST=()
-
-if [[ -f "\$FLAGS_FILE" ]]; then
-  mapfile -t _lines < "\$FLAGS_FILE"
-  for line in "\${_lines[@]}"; do
-    line="\$(sed -e 's/[[:space:]]*#.*//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*\$//' <<< "\$line")"
-    [[ -n "\$line" ]] && FLAG_LIST+=("\$line")
-  done
-fi
-
-export CHROME_VERSION_EXTRA='beta'
-export CHROME_WRAPPER="\$(readlink -f "\$0")"
-export GNOME_DISABLE_CRASH_DIALOG=SET_BY_GOOGLE_CHROME
-
-exec < /dev/null
-exec > >(exec cat)
-exec 2> >(exec cat >&2)
-
-exec /opt/brave.com/${_appname}/brave "\${FLAG_LIST[@]}" "\$@"
-EOF
-
-  if [ -f "usr/share/applications/brave-origin-beta.desktop" ]; then
-    install -Dm644 "usr/share/applications/brave-origin-beta.desktop" \
-      "$pkgdir/usr/share/applications/brave-origin-beta.desktop"
-  else
-    install -Dm644 /dev/stdin \
-      "$pkgdir/usr/share/applications/brave-origin-beta.desktop" <<'EOF'
-[Desktop Entry]
-Version=1.0
-Name=Brave Origin Beta
-GenericName=Web Browser
-Comment=Brave Origin — minimalist browser (Beta)
-Exec=/usr/bin/brave-origin-beta %U
-StartupNotify=true
-Terminal=false
-Icon=brave-origin-beta
-Type=Application
-Categories=Network;WebBrowser;
-MimeType=text/html;text/xml;application/xhtml+xml;x-scheme-handler/http;x-scheme-handler/https;
-EOF
-  fi
-
-  _install_icons "opt/brave.com/${_appname}" "brave-origin-beta"
-
-  install -Dm644 "opt/brave.com/${_appname}/LICENSE" \
-    "$pkgdir/usr/share/licenses/$pkgname/LICENSE" 2>/dev/null || true
+    cp -a --reflink=auto brave/opt "$pkgdir/opt"
+    cp -a --reflink=auto brave/usr "$pkgdir/usr"
+    rm -f "$pkgdir/usr/bin/${pkgname%-bin}"
+    install -Dm0755 "$pkgname.sh" "$pkgdir/usr/bin/${pkgname%-bin}"
+    install -Dm0644 "brave/opt/brave.com/${pkgname%-bin}/product_logo_128.png" "$pkgdir/usr/share/pixmaps/${pkgname%-bin}.png"
+    install -Dm0664 -t "$pkgdir/usr/share/licenses/$pkgname" "brave/opt/brave.com/${pkgname%-bin}/LICENSE"
+    chmod 4755 "$pkgdir/opt/brave.com/${pkgname%-bin}/chrome-sandbox"
 }
