@@ -13,6 +13,7 @@ update_package() {
   local PKGBUILD="$2"
   local ASSET_NAME="$3"
   local IS_PRERELEASE="$4"
+  local HASH_TYPE="${5:-sha256}"  # sha256 ou sha512
 
   echo "──────────────────────────────────────"
   echo "🔍 Checking $LABEL..."
@@ -66,25 +67,37 @@ update_package() {
   # Récupère la version et le sha256 actuels
   local CURRENT_VER CURRENT_SHA
   CURRENT_VER=$(grep '^pkgver=' "$PKGBUILD" | cut -d= -f2)
-  CURRENT_SHA=$(grep '^sha256sums=' "$PKGBUILD" | sed "s/sha256sums=('//;s/')//" )
+  if [[ "$HASH_TYPE" == "sha512" ]]; then
+    CURRENT_SHA=$(grep '^sha512sums_x86_64=' "$PKGBUILD" | sed "s/sha512sums_x86_64=('//;s/')//" )
+  else
+    CURRENT_SHA=$(grep '^sha256sums=' "$PKGBUILD" | sed "s/sha256sums=('//;s/')//" )
+  fi
 
   if [[ "$CURRENT_VER" == "$VERSION" && "$CURRENT_SHA" != "PLACEHOLDER" ]]; then
     echo "⏭️  $LABEL déjà à jour ($VERSION)."
     return 0
   fi
 
-  # Calcul du sha256
-  echo "🔒 Calcul sha256 (téléchargement du .deb)..."
-  local SHA256
-  SHA256=$(curl -sL "$DEB_URL" | sha256sum | awk '{print $1}')
-  echo "   sha256 : $SHA256"
-
-  # Mise à jour du PKGBUILD
-  sed -i \
-    -e "s/^pkgver=.*/pkgver=${VERSION}/" \
-    -e "s/^pkgrel=.*/pkgrel=1/" \
-    -e "s/sha256sums=('.*')/sha256sums=('${SHA256}')/" \
-    "$PKGBUILD"
+  # Calcul du hash
+  echo "🔒 Calcul hash (téléchargement du .deb)..."
+  local HASH
+  if [[ "$HASH_TYPE" == "sha512" ]]; then
+    HASH=$(curl -sL "$DEB_URL" | sha512sum | awk '{print $1}')
+    echo "   sha512 : $HASH"
+    sed -i \
+      -e "s/^pkgver=.*/pkgver=${VERSION}/" \
+      -e "s/^pkgrel=.*/pkgrel=1/" \
+      -e "s/sha512sums_x86_64=('.*')/sha512sums_x86_64=('${HASH}')/" \
+      "$PKGBUILD"
+  else
+    HASH=$(curl -sL "$DEB_URL" | sha256sum | awk '{print $1}')
+    echo "   sha256 : $HASH"
+    sed -i \
+      -e "s/^pkgver=.*/pkgver=${VERSION}/" \
+      -e "s/^pkgrel=.*/pkgrel=1/" \
+      -e "s/sha256sums=('.*')/sha256sums=('${HASH}')/" \
+      "$PKGBUILD"
+  fi
 
   echo "✏️  $CURRENT_VER → $VERSION"
   UPDATED_VERSIONS["$LABEL"]="$VERSION"
@@ -93,11 +106,11 @@ update_package() {
 # ──────────────────────────────────────────────────────────────────────────────
 # Mise à jour des 5 canaux
 # ──────────────────────────────────────────────────────────────────────────────
-update_package "Brave Stable"         "pkgs/brave-stable/PKGBUILD"         "brave-browser_"          "false"
-update_package "Brave Beta"           "pkgs/brave-beta/PKGBUILD"           "brave-browser-beta_"     "true"
-update_package "Brave Nightly"        "pkgs/brave-nightly/PKGBUILD"        "brave-browser-nightly_"  "true"
-update_package "Brave Origin Beta"    "pkgs/brave-origin-beta/PKGBUILD"    "brave-origin-beta_"      "true"
-update_package "Brave Origin Nightly" "pkgs/brave-origin-nightly/PKGBUILD" "brave-origin-nightly_"   "true"
+update_package "Brave Stable"         "pkgs/brave-stable/PKGBUILD"         "brave-browser_"          "false" "sha256"
+update_package "Brave Beta"           "pkgs/brave-beta/PKGBUILD"           "brave-browser-beta_"     "true"  "sha256"
+update_package "Brave Nightly"        "pkgs/brave-nightly/PKGBUILD"        "brave-browser-nightly_"  "true"  "sha256"
+update_package "Brave Origin Beta"    "pkgs/brave-origin-beta/PKGBUILD"    "brave-origin-beta_"      "true"  "sha512"
+update_package "Brave Origin Nightly" "pkgs/brave-origin-nightly/PKGBUILD" "brave-origin-nightly_"   "true"  "sha512"
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Résumé

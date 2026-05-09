@@ -3,6 +3,7 @@
 pkgname=brave-origin-nightly-bin
 pkgver=1.92.41
 pkgrel=1
+<<<<<<< HEAD
 pkgdesc='The minimalist browser from the makers of Brave (nightly binary release).'
 arch=(x86_64 aarch64)
 url='https://brave.com/origin/download-nightly'
@@ -21,6 +22,33 @@ source_aarch64=("https://github.com/brave/brave-browser/releases/download/v${pkg
 sha512sums=('PLACEHOLDER_SH')
 sha512sums_x86_64=('PLACEHOLDER')
 sha512sums_aarch64=('PLACEHOLDER')
+=======
+pkgdesc="Brave Origin Web Browser — Nightly channel (sans Rewards/Wallet/Leo)"
+arch=('x86_64')
+url="https://brave.com"
+license=('custom')
+depends=(
+  'gtk3' 'nss' 'alsa-lib' 'libxss' 'ttf-font'
+  'libnotify' 'dbus' 'xdg-utils' 'libcups'
+)
+optdepends=(
+  'plasma-browser-integration: KDE Plasma integration'
+  'kdialog: KDE file picker'
+  'libgnome-keyring: GNOME keyring support'
+)
+provides=('brave-origin-nightly')
+conflicts=('brave-origin-nightly')
+options=('!strip')
+
+_appname="brave-origin-nightly"
+_binname="brave-origin-nightly"
+_flagsfile="brave-origin-nightly-flags.conf"
+_filename="brave-origin-nightly_${pkgver}_amd64.deb"
+source=("${_filename}::https://github.com/brave/brave-browser/releases/download/v${pkgver}/${_filename}")
+sha256sums=('6e8a21dec8440230bc66645035845b087347ac323ca022270faf832aabae5cff')
+
+_icon_suffixes=("_nightly" "_origin_nightly" "" "_release")
+>>>>>>> a149bbaadd59ea957a246a006acdd6499a5a2b3c
 
 prepare() {
   mkdir -p brave

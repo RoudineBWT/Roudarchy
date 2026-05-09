@@ -3,6 +3,7 @@
 pkgname=brave-origin-beta-bin
 pkgver=1.91.145
 pkgrel=1
+<<<<<<< HEAD
 pkgdesc='The minimalist browser from the makers of Brave (beta binary release).'
 arch=(x86_64 aarch64)
 url='https://brave.com/origin/download-beta'
@@ -21,6 +22,33 @@ source_aarch64=("https://github.com/brave/brave-browser/releases/download/v${pkg
 sha512sums=('PLACEHOLDER_SH')
 sha512sums_x86_64=('PLACEHOLDER')
 sha512sums_aarch64=('PLACEHOLDER')
+=======
+pkgdesc="Brave Origin Web Browser — Beta channel (sans Rewards/Wallet/Leo)"
+arch=('x86_64')
+url="https://brave.com"
+license=('custom')
+depends=(
+  'gtk3' 'nss' 'alsa-lib' 'libxss' 'ttf-font'
+  'libnotify' 'dbus' 'xdg-utils' 'libcups'
+)
+optdepends=(
+  'plasma-browser-integration: KDE Plasma integration'
+  'kdialog: KDE file picker'
+  'libgnome-keyring: GNOME keyring support'
+)
+provides=('brave-origin-beta')
+conflicts=('brave-origin-beta')
+options=('!strip')
+
+_appname="brave-origin-beta"
+_binname="brave-origin-beta"
+_flagsfile="brave-origin-beta-flags.conf"
+_filename="brave-origin-beta_${pkgver}_amd64.deb"
+source=("${_filename}::https://github.com/brave/brave-browser/releases/download/v${pkgver}/${_filename}")
+sha256sums=('312b6d44a452987c949b6ebc886076e67a90e2e633c187221a34420be476ed44')
+
+_icon_suffixes=("_beta" "_origin_beta" "" "_release")
+>>>>>>> a149bbaadd59ea957a246a006acdd6499a5a2b3c
 
 prepare() {
   mkdir -p brave
