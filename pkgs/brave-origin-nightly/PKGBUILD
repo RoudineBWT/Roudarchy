@@ -20,7 +20,7 @@ options=(!strip)
 source_x86_64=("https://github.com/brave/brave-browser/releases/download/v${pkgver}/${pkgname%-bin}_${pkgver}_amd64.deb")
 source_aarch64=("https://github.com/brave/brave-browser/releases/download/v${pkgver}/${pkgname%-bin}_${pkgver}_arm64.deb")
 sha512sums=('PLACEHOLDER_SH')
-sha512sums_x86_64=('PLACEHOLDER')
+sha512sums_x86_64=('951a9c811c835a453e3cfe3ec0e20dcdcf86ed5a634c027e683fb7d8f2f5782c82e214c1c2ced335b24b5b1a7ce4a106340574d5561acd679732bf0cb8cb846f')
 sha512sums_aarch64=('PLACEHOLDER')
 =======
 pkgdesc="Brave Origin Web Browser — Nightly channel (sans Rewards/Wallet/Leo)"
