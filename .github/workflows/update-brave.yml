@@ -1,8 +1,6 @@
 name: Update & Publish Brave (all channels)
 
 on:
-  schedule:
-    - cron: '0 6 * * *'
   workflow_dispatch:
 
 jobs:
@@ -25,7 +23,7 @@ jobs:
       - name: Run update.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bash update.sh
+        run: bash .github/workflows/update.sh
 
       - name: Check for changes
         id: changes

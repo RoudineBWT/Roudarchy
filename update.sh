@@ -2,8 +2,8 @@
 # update.sh — Met à jour tous les canaux Brave (stable, beta, nightly, origin-beta, origin-nightly)
 set -euo pipefail
 
-declare -A UPDATED_VERSIONS
-declare -A SKIPPED
+declare -A UPDATED_VERSIONS=()
+declare -A SKIPPED=()
 
 # ──────────────────────────────────────────────────────────────────────────────
 # update_package LABEL  PKGBUILD_PATH  ASSET_NAME  IS_PRERELEASE
@@ -103,6 +103,7 @@ update_package "Brave Origin Nightly" "pkgs/brave-origin-nightly/PKGBUILD" "brav
 # ──────────────────────────────────────────────────────────────────────────────
 echo ""
 echo "══════════════════════════════════════"
+set +u
 if [[ ${#UPDATED_VERSIONS[@]} -eq 0 && ${#SKIPPED[@]} -eq 0 ]]; then
   echo "✅ Tous les canaux sont déjà à jour."
 fi
@@ -120,4 +121,5 @@ if [[ ${#SKIPPED[@]} -gt 0 ]]; then
     echo "   ⚠️  $key : ${SKIPPED[$key]}"
   done
 fi
+set -u
 echo "══════════════════════════════════════"
