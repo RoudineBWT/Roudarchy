@@ -63,11 +63,12 @@ update_package() {
     return 0
   fi
 
-  # Récupère la version actuelle
-  local CURRENT_VER
+  # Récupère la version et le sha256 actuels
+  local CURRENT_VER CURRENT_SHA
   CURRENT_VER=$(grep '^pkgver=' "$PKGBUILD" | cut -d= -f2)
+  CURRENT_SHA=$(grep '^sha256sums=' "$PKGBUILD" | sed "s/sha256sums=('//;s/')//" )
 
-  if [[ "$CURRENT_VER" == "$VERSION" ]]; then
+  if [[ "$CURRENT_VER" == "$VERSION" && "$CURRENT_SHA" != "PLACEHOLDER" ]]; then
     echo "⏭️  $LABEL déjà à jour ($VERSION)."
     return 0
   fi
