@@ -23,7 +23,7 @@ _binname="brave-origin-beta"
 _flagsfile="brave-origin-beta-flags.conf"
 _filename="brave-origin-beta_${pkgver}_amd64.deb"
 source=("${_filename}::https://github.com/brave/brave-browser/releases/download/v${pkgver}/${_filename}")
-sha256sums=('PLACEHOLDER')
+sha256sums=('312b6d44a452987c949b6ebc886076e67a90e2e633c187221a34420be476ed44')
 
 _icon_suffixes=("_beta" "_origin_beta" "" "_release")
 
