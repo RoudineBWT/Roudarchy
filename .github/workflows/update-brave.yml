@@ -280,7 +280,8 @@ jobs:
               <tr><td><code>brave-bin</code></td><td><span class="badge stable">stable</span></td><td>Brave standard</td></tr>
               <tr><td><code>brave-beta-bin</code></td><td><span class="badge beta">beta</span></td><td>Brave standard beta</td></tr>
               <tr><td><code>brave-nightly-bin</code></td><td><span class="badge nightly">nightly</span></td><td>Brave standard nightly</td></tr>
-              <tr><td><code>brave-origin-beta-bin</code></td><td><span class="badge origin">origin beta</span></td><td>Brave Origin — sans Rewards/Wallet/Leo</td></tr>
+              <tr><td><code>brave-origin-bin</code></td><td><span class="badge origin">origin</span></td><td>Brave Origin — sans Rewards/Wallet/Leo</td></tr>
+              <tr><td><code>brave-origin-beta-bin</code></td><td><span class="badge origin">origin beta</span></td><td>Brave Origin beta</td></tr>
               <tr><td><code>brave-origin-nightly-bin</code></td><td><span class="badge origin">origin nightly</span></td><td>Brave Origin nightly</td></tr>
             </table>
 
