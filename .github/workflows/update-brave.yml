@@ -67,7 +67,7 @@ jobs:
           [ "$(check_asset 'brave-browser-nightly_' true  .last-brave-nightly)"         = "true" ] && CHANGED=true
           [ "$(check_asset 'brave-origin-beta_'     true  .last-brave-origin-beta)"     = "true" ] && CHANGED=true
           [ "$(check_asset 'brave-origin-nightly_'  true  .last-brave-origin-nightly)"  = "true" ] && CHANGED=true
-          [ "$(check_asset 'brave-origin_'  true  .last-brave-origin)"  = "true" ] && CHANGED=true
+          [ "$(check_asset 'brave-origin_' true .last-brave-origin)" = "true" ] && CHANGED=true
 
           echo "changed=$CHANGED" >> $GITHUB_OUTPUT
 
