@@ -67,6 +67,7 @@ jobs:
           [ "$(check_asset 'brave-browser-nightly_' true  .last-brave-nightly)"         = "true" ] && CHANGED=true
           [ "$(check_asset 'brave-origin-beta_'     true  .last-brave-origin-beta)"     = "true" ] && CHANGED=true
           [ "$(check_asset 'brave-origin-nightly_'  true  .last-brave-origin-nightly)"  = "true" ] && CHANGED=true
+          [ "$(check_asset 'brave-origin_'  true  .last-brave-origin)"  = "true" ] && CHANGED=true
 
           echo "changed=$CHANGED" >> $GITHUB_OUTPUT
 
@@ -89,7 +90,7 @@ jobs:
       contents: write
     outputs:
       has_changes: ${{ steps.changes.outputs.has_changes }}
-      summary:     ${{ steps.changes.outputs.summary }}
+      summary: ${{ steps.changes.outputs.summary }}
 
     steps:
       - uses: actions/checkout@v4
@@ -236,7 +237,7 @@ jobs:
       - name: Generate index.html
         env:
           REPO_OWNER: ${{ github.repository_owner }}
-          REPO_NAME:  ${{ github.event.repository.name }}
+          REPO_NAME: ${{ github.event.repository.name }}
         run: |
           cd repo-output
 
@@ -294,6 +295,7 @@ jobs:
           sudo pacman -S brave-bin               # Stable
           sudo pacman -S brave-beta-bin          # Beta
           sudo pacman -S brave-nightly-bin       # Nightly
+          sudo pacman -S brave-origin-bin   # Origin
           sudo pacman -S brave-origin-beta-bin   # Origin Beta
           sudo pacman -S brave-origin-nightly-bin # Origin Nightly</pre>
 

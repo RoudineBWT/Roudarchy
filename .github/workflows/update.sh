@@ -111,6 +111,7 @@ update_package "Brave Beta"           "pkgs/brave-beta/PKGBUILD"           "brav
 update_package "Brave Nightly"        "pkgs/brave-nightly/PKGBUILD"        "brave-browser-nightly_"  "true"  "sha256"
 update_package "Brave Origin Beta"    "pkgs/brave-origin-beta/PKGBUILD"    "brave-origin-beta_"      "true"  "sha512"
 update_package "Brave Origin Nightly" "pkgs/brave-origin-nightly/PKGBUILD" "brave-origin-nightly_"   "true"  "sha512"
+update_package "Brave Origin" "pkgs/brave-origin/PKGBUILD" "brave-origin_" "false" "sha512"
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Résumé
