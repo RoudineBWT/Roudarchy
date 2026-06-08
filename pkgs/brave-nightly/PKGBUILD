@@ -1,5 +1,5 @@
 pkgname=brave-nightly-bin
-pkgver=1.93.38
+pkgver=1.93.33
 pkgrel=1
 pkgdesc="Brave Web Browser — Nightly channel"
 arch=('x86_64')
@@ -23,7 +23,7 @@ _binname="brave-browser-nightly"
 _flagsfile="brave-nightly-flags.conf"
 _filename="brave-browser-nightly_${pkgver}_amd64.deb"
 source=("${_filename}::https://github.com/brave/brave-browser/releases/download/v${pkgver}/${_filename}")
-sha256sums=('ce5b97c6cc1656d80172711e2edb2c591a40a0e3bcb61be5d12fbc99298e7efd')
+sha256sums=('93b095c2171c05910be4eb0a2505a1ab207b636c41c4869f5dce9f5b1b53b7e4')
 
 # Depuis v1.92.24 les icônes sont suffixées _nightly (cf AUR)
 _icon_suffixes=("_nightly" "" "_release")
