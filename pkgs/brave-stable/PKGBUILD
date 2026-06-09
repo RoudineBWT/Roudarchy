@@ -1,5 +1,5 @@
 pkgname=brave-bin
-pkgver=1.91.168
+pkgver=1.91.171
 pkgrel=1
 pkgdesc="Brave Web Browser — Stable channel"
 arch=('x86_64')
@@ -23,7 +23,7 @@ _binname="brave-browser"
 _flagsfile="brave-flags.conf"
 _filename="brave-browser_${pkgver}_amd64.deb"
 source=("${_filename}::https://github.com/brave/brave-browser/releases/download/v${pkgver}/${_filename}")
-sha256sums=('e715b41e10ccf5c821ee1d2143e074371687c3b0ce6cb497ce0c22c68fa336d7')
+sha256sums=('7e2313d09ce1686525aa06f55cee8bdf22290a76be027df773b6db56611004a1')
 
 _icon_suffixes=("" "_release" "_stable")
 
