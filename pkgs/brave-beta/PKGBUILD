@@ -1,5 +1,5 @@
 pkgname=brave-beta-bin
-pkgver=1.92.118
+pkgver=1.92.119
 pkgrel=1
 pkgdesc="Brave Web Browser — Beta channel"
 arch=('x86_64')
@@ -23,7 +23,7 @@ _binname="brave-browser-beta"
 _flagsfile="brave-beta-flags.conf"
 _filename="brave-browser-beta_${pkgver}_amd64.deb"
 source=("${_filename}::https://github.com/brave/brave-browser/releases/download/v${pkgver}/${_filename}")
-sha256sums=('b9ef9fd93329db177479c07aaffa7d8671e913609f4494e50c9f8d7e060e3b77')
+sha256sums=('8ee1b3ac76825236d563f3a4c32f43c26ae6db84617f77aa3e69c300a0a64374')
 
 _icon_suffixes=("_beta" "" "_release")
 
