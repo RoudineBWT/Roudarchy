@@ -1,7 +1,7 @@
 # Maintainer: brave-prerelease <aur-prerelease@brave.com>
 
 pkgname=brave-origin-bin
-pkgver=1.91.172
+pkgver=1.91.167
 pkgrel=1
 pkgdesc='The minimalist browser from the makers of Brave (binary release).'
 arch=(x86_64 aarch64)
@@ -19,7 +19,7 @@ options=(!strip)
 source_x86_64=("https://github.com/brave/brave-browser/releases/download/v${pkgver}/${pkgname%-bin}_${pkgver}_amd64.deb")
 source_aarch64=("https://github.com/brave/brave-browser/releases/download/v${pkgver}/${pkgname%-bin}_${pkgver}_arm64.deb")
 sha512sums=('SKIP')
-sha512sums_x86_64=('1f0ad46d3f72ffc2508425c3245e2647020b19fd96b199363a3d925e322369b436b0e1a406524ce94c668ef5d769eb2ede23faa1a83019fc780c9d5453f238d4')
+sha512sums_x86_64=('52a810138fc8c95cd34e378b9bac993aa2b7a292cf2f6ad259533e9c958cdbe470017cfd94abb833f4547ae54b87bba28af031437f61305031db24d097675425')
 sha512sums_aarch64=('PLACEHOLDER')
 
 prepare() {
